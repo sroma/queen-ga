@@ -29,7 +29,7 @@ typedef std::uniform_int_distribution<RNGtype::result_type> DStype;
 
 void printq(Qvec qs, int wd = 1) {
     for (auto i: qs) cout << " " << setw(wd) << i;
-    cout <<"."<< endl;
+    cout << "." << endl;
 }
 
 inline bool isDublicate(Qtype x, Qvec qs) {
@@ -85,7 +85,6 @@ inline bool test(Qvec qs) {
 int main(int argc, char * argv[]) {
     const int sz = (argc > 1) ? std::atoi(argv[1]) : 8;
     const int num_threads = (argc > 2) ? std::atoi(argv[2]) : 1;
-    bool debug = false;
 
     std::vector<Qvec> qs(POPULATION, Qvec(sz));  
     Qvec fit(POPULATION);
@@ -113,15 +112,7 @@ int main(int argc, char * argv[]) {
         std::iota(qs[p].begin(),qs[p].end(),static_cast<Qtype>(0));       
         std::shuffle(qs[p].begin(),qs[p].end(),engines[t]);
         fit[p] = hits(qs[p]);
-        if (debug) {
-            #pragma omp critical
-            {
-                cout << "Thread #" << setw(2) << t << " generated seq. #" << 
-                 setw(2) << p << ":";
-                printq(qs[p],sz/10+1);
-            }
-        }
-    }
+      }
     // Main cycle
     while (num_gen++ < MAX_ITER) {
         // Quantile
