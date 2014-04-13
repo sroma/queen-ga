@@ -1,11 +1,3 @@
-/*
-	Genetic algorithm for solving N-queen problem.
-	Crossover functions (lines 131,132): crossover() and gemmation().
-
-	Compile: g++-4.7 qg.cpp -std=c++11 -fopenmp 
-	Arguments: 1st = board dimension; 2nd = number of threads
-*/
-
 #include <omp.h>
 #include <algorithm>
 #include <stdexcept>
@@ -19,7 +11,7 @@ using std::endl;
 using std::setw;
 
 const int POPULATION = 75;
-const int MUTATION = std::ceil(POPULATION / 100.0f * 1.0f);
+const int MUTATION = std::ceil(POPULATION / 100.0f * 3.0f);
 const int MAX_ITER = 1E+7;
 
 typedef std::vector<int> Qvec;
@@ -50,19 +42,19 @@ Qvec crossover(Qvec qp1, Qvec qp2, RNGtype engine) {
     for (auto i = 0; i < sz; i++)
         if (qs[i] == -1) {
             qs[i] =  uds_sz(engine);
-            while (isDublicate(qs[i], qs))  qs[i] = uds_sz(engine);
+            while (isDublicate(qs[i], qs)) qs[i] = uds_sz(engine);
         }
     return qs; 
 }
 
 Qvec gemmation(Qvec qp, RNGtype engine) {
-    auto sz = qp.size();
-    DStype uds_sz(0,sz-1);
+    DStype uds_sz(0, qp.size()-1);
     Qvec qs(qp);
         auto x = uds_sz(engine);
         auto y = uds_sz(engine);
         if (x != y) std::swap(qs[x],qs[y]);
-        else { // Do not need dublicate in population
+        else { 
+            // Do not need clones in population
             std::iota(qs.begin(),qs.end(),static_cast<Qtype>(0));       
             std::shuffle(qs.begin(),qs.end(),engine);
         }
@@ -91,6 +83,7 @@ int main(int argc, char * argv[]) {
     Qvec inds(fit.size());
     std::iota(inds.begin(),inds.end(),static_cast<Qtype>(0)); 
     int num_gen = 1;
+    bool debug = true;
  
     DStype uds;
     DStype uds_sz(0,sz-1);
@@ -112,7 +105,7 @@ int main(int argc, char * argv[]) {
         std::iota(qs[p].begin(),qs[p].end(),static_cast<Qtype>(0));       
         std::shuffle(qs[p].begin(),qs[p].end(),engines[t]);
         fit[p] = hits(qs[p]);
-      }
+    }
     // Main cycle
     while (num_gen++ < MAX_ITER) {
         // Quantile
@@ -120,6 +113,8 @@ int main(int argc, char * argv[]) {
          [&](Qtype x, Qtype y) {return fit[x] < fit[y];});
         // Check for solution
         if (!fit[inds[0]]) break;
+        if (debug && num_gen % 1000 == 0) cout << "The best sol on #" << num_gen <<
+         " iteration has " << fit[inds[0]] << " conflict(s)." << endl;
         // New generation: replace the worst solutions (fit > median) by children
         // of the best solutions than children may mutate
         #pragma omp parallel for
@@ -128,8 +123,8 @@ int main(int argc, char * argv[]) {
             auto par1 = inds[p];
             auto par2 = inds[p+1];
             auto chld = inds[POPULATION - p - 1];
-            qs[chld] = crossover(qs[par1],qs[par2],engines[t]);
-            //if (uds1(engines[t])) qs[chld] = gemmation(qs[par1],engines[t]);
+            //qs[chld] = crossover(qs[par1],qs[par2],engines[t]);
+            if (uds1(engines[t])) qs[chld] = gemmation(qs[par1],engines[t]);
             // mutation
             if (uds100(engines[t]) <= MUTATION) {
                 auto x = uds_sz(engines[t]);
@@ -142,21 +137,16 @@ int main(int argc, char * argv[]) {
         for (auto p = POPULATION / 2; p < POPULATION; p++) 
             fit[inds[p]] = hits(qs[inds[p]]);
     }        
-
     if (num_gen == MAX_ITER) {
         cout << sz << "-queen puzzle is NOT solved." << endl;
         return 1;
     }
-
-    cout << sz << "-queen puzzle is SOLVED on " << num_gen <<
-     " iteration by " << num_threads << " threads. Time is " << 
-     std::fixed << omp_get_wtime() - tm << "s." << endl;
-
-    #pragma omp parallel for
-    for (auto p = 0; p < POPULATION; p++)
-        if (!fit[inds[p]] && test(qs[inds[p]])) {
-            #pragma omp critical
-            printq(qs[inds[p]],sz/10+1);
-        }
+    if (test(qs[inds[0]])) {
+        cout << sz << "-queen puzzle is SOLVED on " << num_gen <<
+         "th iteration by " << num_threads << " threads. Time is " << 
+         std::fixed << omp_get_wtime() - tm << "s." << endl;
+        cout << "solution:";
+        printq(qs[inds[0]]);
+    }
     return 0;
 }
