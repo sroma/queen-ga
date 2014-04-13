@@ -1,6 +1,6 @@
 /*
 	Genetic algorithm for solving N-queen problem.
-	Crossover functions: crossover() and gemmation().
+	Crossover functions (lines 131,132): crossover() and gemmation().
 
 	Compile: g++-4.7 qg.cpp -std=c++11 -fopenmp 
 	Arguments: 1st = board dimension; 2nd = number of threads
